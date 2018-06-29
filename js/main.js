@@ -12,13 +12,13 @@ var markers = []
 
 
 //Registering service worker
-// if (navigator.serviceWorker) {
-//   navigator.serviceWorker.register('/worker.js', {scope: '/'}).then(function(){
-//     console.log('SW Registration success!');
-//   }).catch(function(e) {
-//     console.log(e);
-//   })
-// }
+if (navigator.serviceWorker) {
+  navigator.serviceWorker.register('/worker.js', {scope: '/'}).then(function(){
+    console.log('SW Registration success!');
+  }).catch(function(e) {
+    console.log(e);
+  })
+}
 
 
 
@@ -92,19 +92,23 @@ fillCuisinesHTML = (cuisines = self.cuisines) => {
  */
 initMap = () => {
   
-  self.newMap = L.map('map', {
-        center: [40.722216, -73.987501],
-        zoom: 12,
-        scrollWheelZoom: false
-      });
-  L.tileLayer('https://api.tiles.mapbox.com/v4/{id}/{z}/{x}/{y}.jpg70?access_token={mapboxToken}', {
-    mapboxToken: 'pk.eyJ1IjoieWdhbGFudGVyIiwiYSI6ImNqaWxzOGIwYzAxNzkzbG85cmRhZjU4ZnUifQ.J2fvK2vYB2xZIWGDv_46Zw',
-    maxZoom: 18,
-    attribution: 'Map data &copy; <a href="https://www.openstreetmap.org/">OpenStreetMap</a> contributors, ' +
-      '<a href="https://creativecommons.org/licenses/by-sa/2.0/">CC-BY-SA</a>, ' +
-      'Imagery © <a href="https://www.mapbox.com/">Mapbox</a>',
-    id: 'mapbox.streets'
-  }).addTo(newMap);
+  try {
+    self.newMap = L.map('map', {
+          center: [40.722216, -73.987501],
+          zoom: 12,
+          scrollWheelZoom: false
+        });
+    L.tileLayer('https://api.tiles.mapbox.com/v4/{id}/{z}/{x}/{y}.jpg70?access_token={mapboxToken}', {
+      mapboxToken: 'pk.eyJ1IjoieWdhbGFudGVyIiwiYSI6ImNqaWxzOGIwYzAxNzkzbG85cmRhZjU4ZnUifQ.J2fvK2vYB2xZIWGDv_46Zw',
+      maxZoom: 18,
+      attribution: 'Map data &copy; <a href="https://www.openstreetmap.org/">OpenStreetMap</a> contributors, ' +
+        '<a href="https://creativecommons.org/licenses/by-sa/2.0/">CC-BY-SA</a>, ' +
+        'Imagery © <a href="https://www.mapbox.com/">Mapbox</a>',
+      id: 'mapbox.streets'
+    }).addTo(newMap);
+  } catch (e) {
+     document.querySelector("#map").innerHTML  = "<h1>Map is offline</h1>"
+  }
 
   updateRestaurants();
 
@@ -171,7 +175,11 @@ fillRestaurantsHTML = (restaurants = self.restaurants) => {
   restaurants.forEach(restaurant => {
     ul.append(createRestaurantHTML(restaurant));
   });
-  addMarkersToMap();
+
+  try {
+    addMarkersToMap();
+  }
+  catch (e){}
 }
 
 /**
@@ -286,7 +294,7 @@ function inViewport (el) {
 
 }
 
-var handler = function () {
+function lazyLoad () {
   
   for (var pic of document.querySelectorAll('picture[data-srcset]')) {
     if (inViewport(pic)) {
@@ -302,8 +310,8 @@ var handler = function () {
   }
 
 };
-
-addEventListener('DOMContentLoaded', handler, false); 
-addEventListener('load', handler, false); 
-addEventListener('scroll', handler, false); 
-addEventListener('resize', handler, false); 
+ 
+addEventListener('DOMContentLoaded', lazyLoad, false); 
+addEventListener('load', lazyLoad, false); 
+addEventListener('scroll', lazyLoad, false); 
+addEventListener('resize', lazyLoad, false); 

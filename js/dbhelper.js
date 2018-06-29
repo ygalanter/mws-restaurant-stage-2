@@ -1,17 +1,23 @@
+
+
+var dbPromise = idb.open("restaurant_reviews",1, function(upgradeDB) {
+  upgradeDB.createObjectStore("restaurants", {keyPath:"id"});
+})
+
+
+
 /**
  * Common database helper functions.
  */
 class DBHelper {
 
-  /**
-   * Database URL.
-   * Change this to restaurants.json file location on your server.
-   */
+  /* Database URL */
   static get DATABASE_URL() {
     const port = 1337 // Change this to your server port
     
-    // return `http://localhost:${port}/restaurants`; //USE THIS TO TEST ON DEV MACHINE ITSELF, COMMENT OTHERWISE
-    return `http://10.100.102.18:${port}/restaurants`; //USE THIS TO TEST OVER NETWORK FROM REMOTE DEVICE (use correct IP) COMMENT OTHERWISE
+    return `http://localhost:${port}/restaurants`; //USE THIS TO TEST ON DEV MACHINE ITSELF, COMMENT OTHERWISE
+    //return `http://192.168.1.26:${port}/restaurants`;
+    //return `http://10.100.102.18:${port}/restaurants`; //USE THIS TO TEST OVER NETWORK FROM REMOTE DEVICE (use correct IP) COMMENT OTHERWISE
   }
 
   static get NO_IMAGE() {
@@ -27,10 +33,58 @@ class DBHelper {
    */
   static fetchRestaurants(callback) {
 
-    fetch(DBHelper.DATABASE_URL)
-      .then(response => response.json())
-      .then(restaurants => callback(null, restaurants))
-      .catch(error => callback(error, null))
+    // Trying to get restaurants from IndexDB
+    dbPromise.then(function(db){
+      var tx = db.transaction("restaurants");
+      var restaurantStore = tx.objectStore("restaurants");
+      return restaurantStore.getAll()
+    }).then(function(restaurants) {
+      
+      if (restaurants.length !== 0) { // if restaurants already in IndexDB - return them
+
+        callback(null, restaurants)
+
+      } else { // If restaurants aren't in DB yet - fetch them from API
+
+          fetch(DBHelper.DATABASE_URL)
+          .then(response => response.json())
+          .then(restaurants => {
+
+            // Once restaurants are successfully fetched - add them to IndexDB
+            dbPromise.then(function(db){
+              var tx = db.transaction("restaurants", "readwrite");
+              var restaurantStore = tx.objectStore("restaurants");
+
+              for (let restaurant of restaurants) {
+                restaurantStore.put(restaurant)
+              }
+
+              return tx.complete 
+
+            }).then(function() { // successfully added restaurants to IndexDB
+              
+              console.log("Restaurants added to Index DB successfully")
+
+            }).catch(function(error) { // failed adding restaurants to IndexDB
+              
+              console.log(error)
+
+            }).finally(function(error) { // no matter whether adding to IndexDB was successfull or not - returning fetched data to caller
+
+              callback(null, restaurants)
+
+            })
+
+            
+          })
+          .catch(error => callback(error, null))
+
+      }
+
+
+    })
+
+    
 
   }
 
@@ -39,11 +93,28 @@ class DBHelper {
    */
   static fetchRestaurantById(id, callback) {
 
-    fetch(DBHelper.DATABASE_URL + '/' + id)
-      .then(response => response.json())
-      .then(restaurants => callback(null, restaurants))
-      .catch(error => callback(error, null))
+    // Trying to get restaurant by ID  from IndexDB
+    dbPromise.then(function(db){
 
+      var tx = db.transaction("restaurants");
+      var restaurantStore = tx.objectStore("restaurants");
+      return restaurantStore.get(parseInt(id))
+
+    }).then(function(restaurant) {
+      
+      if (restaurant) { // if restaurants already in IndexDB - return them
+
+        callback(null, restaurant)
+
+      } else { // if restaurants aren't in Index DB - call API
+
+        fetch(DBHelper.DATABASE_URL + '/' + id)
+          .then(response => response.json())
+          .then(restaurants => callback(null, restaurants))
+          .catch(error => callback(error, null))
+      }
+
+    })
   }
 
   /**

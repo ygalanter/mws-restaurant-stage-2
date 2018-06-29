@@ -1,11 +1,14 @@
 let restaurant;
 var newMap;
 
-// lighthouse suggestion for automatic http->https redirect
-// if (location.protocol != 'https:')
-// {
-//  location.href = 'https://' + location.hostname + ':444/' + location.pathname + location.search
-// }
+//Registering service worker
+if (navigator.serviceWorker) {
+  navigator.serviceWorker.register('/worker.js', {scope: '/'}).then(function(){
+    console.log('SW Registration success!');
+  }).catch(function(e) {
+    console.log(e);
+  })
+}
 
 /**
  * Initialize map as soon as the page is loaded.
@@ -21,22 +24,29 @@ initMap = () => {
   fetchRestaurantFromURL((error, restaurant) => {
     if (error) { // Got an error!
       console.error(error);
-    } else {      
-      self.newMap = L.map('map', {
-        center: [restaurant.latlng.lat, restaurant.latlng.lng],
-        zoom: 16,
-        scrollWheelZoom: false
-      });
-      L.tileLayer('https://api.tiles.mapbox.com/v4/{id}/{z}/{x}/{y}.jpg70?access_token={mapboxToken}', {
-        mapboxToken: 'pk.eyJ1IjoieWdhbGFudGVyIiwiYSI6ImNqaWxzOGIwYzAxNzkzbG85cmRhZjU4ZnUifQ.J2fvK2vYB2xZIWGDv_46Zw',
-        maxZoom: 18,
-        attribution: 'Map data &copy; <a href="https://www.openstreetmap.org/">OpenStreetMap</a> contributors, ' +
-          '<a href="https://creativecommons.org/licenses/by-sa/2.0/">CC-BY-SA</a>, ' +
-          'Imagery © <a href="https://www.mapbox.com/">Mapbox</a>',
-        id: 'mapbox.streets'    
-      }).addTo(newMap);
-      fillBreadcrumb();
-      DBHelper.mapMarkerForRestaurant(self.restaurant, self.newMap);
+    } else {  
+      
+      try {
+          self.newMap = L.map('map', {
+            center: [restaurant.latlng.lat, restaurant.latlng.lng],
+            zoom: 16,
+            scrollWheelZoom: false
+          });
+          L.tileLayer('https://api.tiles.mapbox.com/v4/{id}/{z}/{x}/{y}.jpg70?access_token={mapboxToken}', {
+            mapboxToken: 'pk.eyJ1IjoieWdhbGFudGVyIiwiYSI6ImNqaWxzOGIwYzAxNzkzbG85cmRhZjU4ZnUifQ.J2fvK2vYB2xZIWGDv_46Zw',
+            maxZoom: 18,
+            attribution: 'Map data &copy; <a href="https://www.openstreetmap.org/">OpenStreetMap</a> contributors, ' +
+              '<a href="https://creativecommons.org/licenses/by-sa/2.0/">CC-BY-SA</a>, ' +
+              'Imagery © <a href="https://www.mapbox.com/">Mapbox</a>',
+            id: 'mapbox.streets'    
+          }).addTo(newMap);
+          fillBreadcrumb();
+          DBHelper.mapMarkerForRestaurant(self.restaurant, self.newMap);
+        }
+      catch (e) {
+        document.querySelector("#map").innerHTML  = "<h1>Map is offline</h1>"
+      }
+
     }
   });
 }  
